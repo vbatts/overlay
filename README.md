@@ -1,5 +1,7 @@
 # overlay
 
+[![Build Status](https://travis-ci.org/vbatts/overlay.svg?branch=master)](https://travis-ci.org/vbatts/overlay)
+
 A helper for setting up overlay filesystem mounts in Linux.
 This helper is aimed at being usable by limited users.
 
