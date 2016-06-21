@@ -7,12 +7,17 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+
+	"github.com/vbatts/overlay/state"
 )
 
 var (
-	flSrc     = flag.String("src", "", "source directory to overlay")
-	flDest    = flag.String("dest", "", "destination to overlay to (default is ${src}.overlay)")
-	flUnmount = flag.Bool("unmount", false, "unmount directory all provided args")
+	flSrc        = flag.String("src", "", "source directory to overlay")
+	flTarget     = flag.String("target", "", "destination to overlay to (default is ${src}.overlay)")
+	flUnmount    = flag.Bool("unmount", false, "unmount directory all provided args")
+	flRoot       = flag.String("root", filepath.Join(os.Getenv("HOME"), ".local/share/overlay/"), "Directory to story state of previous overlay mounts")
+	flListMounts = flag.Bool("list", false, "list previously recorded mounts")
+	flDebug      = flag.Bool("debug", false, "enable debug output")
 )
 
 func main() {
@@ -28,42 +33,68 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *flDebug {
+		os.Setenv("DEBUG", "1")
+	}
+
+	ctx, err := state.Initialize(*flRoot)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+		os.Exit(1)
+	}
+
 	if *flSrc == "" {
 		fmt.Fprintln(os.Stderr, "ERROR: no source directory provided")
 		os.Exit(1)
 	}
+
+	if *flListMounts {
+		mounts, err := ctx.Mounts()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+			os.Exit(1)
+		}
+		for _, m := range mounts {
+			fmt.Printf("TARGET\t\tSOURCE\t\tUUID\n")
+			fmt.Printf("%s\t\t%s\t\t%s\n", m.Target, m.Source, m.UUID)
+		}
+		os.Exit(0)
+	}
+
+	// TODO check for supported underlying filesystems (ext4, xfs)
+
 	srcDir, err := filepath.Abs(*flSrc)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
 	}
 
-	if *flDest == "" {
-		*flDest = fmt.Sprintf("%s.overlay", srcDir)
+	if *flTarget == "" {
+		*flTarget = fmt.Sprintf("%s.overlay", srcDir)
 	}
-	destDir, err := filepath.Abs(*flDest)
+	targetDir, err := filepath.Abs(*flTarget)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
 	}
-	// TODO check for destDir directory already mounted
+	// TODO check for targetDir directory already mounted
 
-	if _, err := os.Stat(destDir); os.IsNotExist(err) {
-		if err := os.Mkdir(destDir, 0755); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: making %q: %s\n", destDir, err)
+	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
+		if err := os.Mkdir(targetDir, 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: making %q: %s\n", targetDir, err)
 			os.Exit(1)
 		}
 
 		// when the binary is setuid, the effective uid is 0, so reset these new directories to the user
-		if err := os.Chown(destDir, os.Getuid(), os.Getgid()); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: owning %q: %s\n", destDir, err)
+		if err := os.Chown(targetDir, os.Getuid(), os.Getgid()); err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: owning %q: %s\n", targetDir, err)
 			os.Exit(1)
 		}
 	}
-	fmt.Println(destDir)
+	fmt.Println(targetDir)
 
 	// TODO record this state of tmp directories somewhere, to show the user previous iterations or garbage collection
-	tmpDir, err := ioutil.TempDir(filepath.Dir(destDir), filepath.Base(srcDir))
+	tmpDir, err := ioutil.TempDir(filepath.Dir(targetDir), filepath.Base(srcDir))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
@@ -88,9 +119,11 @@ func main() {
 	}
 
 	optionData := fmt.Sprintf("lowerdir=%s,workdir=%s,upperdir=%s", srcDir, filepath.Join(tmpDir, "work"), filepath.Join(tmpDir, "upper"))
-	//fmt.Println(optionData)
+	if *flDebug {
+		fmt.Println(optionData)
+	}
 
-	if err := syscall.Mount(filepath.Join(tmpDir, "merged"), destDir, "overlay", 0, optionData); err != nil {
+	if err := syscall.Mount(filepath.Join(tmpDir, "merged"), targetDir, "overlay", 0, optionData); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
 	}
