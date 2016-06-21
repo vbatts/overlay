@@ -10,13 +10,24 @@ import (
 )
 
 var (
-	flSrc    = flag.String("src", "", "source directory to overlay")
-	flDest   = flag.String("dest", "", "destination to overlay to (default is ${src}.overlay)")
-	flUmount = flag.Bool("umount", false, "un-mount a source directory")
+	flSrc     = flag.String("src", "", "source directory to overlay")
+	flDest    = flag.String("dest", "", "destination to overlay to (default is ${src}.overlay)")
+	flUnmount = flag.Bool("unmount", false, "unmount directory all provided args")
 )
 
 func main() {
 	flag.Parse()
+
+	if *flUnmount {
+		for _, arg := range flag.Args() {
+			if err := syscall.Unmount(arg, 0); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: unmounting %q: %s\n", err)
+				os.Exit(1)
+			}
+		}
+		os.Exit(0)
+	}
+
 	if *flSrc == "" {
 		fmt.Fprintln(os.Stderr, "ERROR: no source directory provided")
 		os.Exit(1)
@@ -25,14 +36,6 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
-	}
-
-	if *flUmount {
-		if err := syscall.Unmount(srcDir, 0); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: unmounting: %s\n", err)
-			os.Exit(1)
-		}
-		os.Exit(0)
 	}
 
 	if *flDest == "" {

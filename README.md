@@ -39,7 +39,7 @@ Here is unmounting the overlay as a limited user.
 ```bash
 vbatts@bananaboat ~ (master *) $ findmnt | grep -w x
 x mq/home/vbatts/x.overlay      /home/vbatts/x796818151/merged overlay         rw,relatime,lowerdir=/home/vbatts/x,upperdir=/home/vbatts/x796818151/upper,workdir=/home/vbatts/x796818151/work
-vbatts@bananaboat ~ $ overlay -src ./x.overlay -umount
+vbatts@bananaboat ~ $ overlay -unmount ./x.overlay 
 vbatts@bananaboat ~ $ echo $?
 0
 ```
