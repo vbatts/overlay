@@ -21,7 +21,7 @@ func main() {
 	if *flUnmount {
 		for _, arg := range flag.Args() {
 			if err := syscall.Unmount(arg, 0); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: unmounting %q: %s\n", err)
+				fmt.Fprintf(os.Stderr, "ERROR: unmounting %q: %s\n", arg, err)
 				os.Exit(1)
 			}
 		}
