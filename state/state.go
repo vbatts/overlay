@@ -7,23 +7,18 @@ import (
 	"path/filepath"
 
 	"github.com/pborman/uuid"
+	"github.com/vbatts/overlay/types"
 )
 
 type Config struct {
-	Mounts []Mount
-}
-
-type Mount struct {
-	UUID               string
-	Source, Target     string
-	Upper, Work, Merge string
+	Mounts []types.Mount
 }
 
 type Context struct {
 	Root string
 }
 
-func (ctx *Context) Mounts() ([]Mount, error) {
+func (ctx *Context) Mounts() ([]types.Mount, error) {
 	c, err := ctx.config()
 	if err != nil {
 		return nil, err
@@ -31,7 +26,7 @@ func (ctx *Context) Mounts() ([]Mount, error) {
 	return c.Mounts, nil
 }
 
-func (ctx *Context) PutMount(m Mount) error {
+func (ctx *Context) PutMount(m types.Mount) error {
 	c, err := ctx.config()
 	if err != nil {
 		return err
@@ -42,8 +37,15 @@ func (ctx *Context) PutMount(m Mount) error {
 
 // NewMount prepares a Mount context with a new UUID.
 // Once the Mount is populated, it must be saved with PutMount
-func (ctx *Context) NewMount() Mount {
-	return Mount{UUID: uuid.New()}
+func (ctx *Context) NewMount() types.Mount {
+	u := uuid.New()
+	return types.Mount{
+		UUID:   u,
+		Target: filepath.Join(ctx.mountsPath(), u, "rootfs"),
+		Upper:  filepath.Join(ctx.mountsPath(), u, "upper"),
+		Work:   filepath.Join(ctx.mountsPath(), u, "work"),
+		Merge:  filepath.Join(ctx.mountsPath(), u, "merge"),
+	}
 }
 
 func (ctx *Context) putConfig(c *Config) error {
@@ -75,6 +77,10 @@ func (ctx *Context) config() (*Config, error) {
 
 func (ctx *Context) configPath() string {
 	return filepath.Join(ctx.Root, "config.json")
+}
+
+func (ctx *Context) mountsPath() string {
+	return filepath.Join(ctx.Root, "mounts")
 }
 
 func Initialize(root string) (*Context, error) {
