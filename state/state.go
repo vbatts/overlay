@@ -12,7 +12,7 @@ import (
 
 // Config contains the metadata for mount information
 type Config struct {
-	Mounts []types.Mount
+	Mounts []types.MountPoint
 }
 
 // Context is used when
@@ -26,7 +26,10 @@ func Initialize(root string) (*Context, error) {
 }
 
 // Mounts is the list of all mounts from the Context's Config (all stored mounts)
-func (ctx *Context) Mounts() ([]types.Mount, error) {
+func (ctx *Context) Mounts() ([]types.MountPoint, error) {
+	// FIXME this will get out of sync if there are failures to Mount.
+	// Better to just glob this directory for the listing.
+	// Also, if the Target director is not in the mounts/$uuid/ directory, make a symlink from 'rootfs' to the target directory
 	c, err := ctx.config()
 	if err != nil {
 		return nil, err
@@ -34,8 +37,8 @@ func (ctx *Context) Mounts() ([]types.Mount, error) {
 	return c.Mounts, nil
 }
 
-// SaveMount stores a Mount to the Context's Config
-func (ctx *Context) SaveMount(m types.Mount) error {
+// SaveMount stores a MountPoint to the Context's Config
+func (ctx *Context) SaveMount(m types.MountPoint) error {
 	c, err := ctx.config()
 	if err != nil {
 		return err
@@ -49,11 +52,11 @@ func NewUUID() string {
 	return uuid.New()
 }
 
-// NewMount prepares a Mount context with a new UUID.
-// Once the Mount is populated, it must be saved with SaveMount
-func (ctx *Context) NewMount() types.Mount {
+// NewMountPoint prepares a MountPoint context with a new UUID.
+// Once the MountPoint is populated, it must be saved with SaveMount
+func (ctx *Context) NewMountPoint() types.MountPoint {
 	u := NewUUID()
-	return types.Mount{
+	return types.MountPoint{
 		UUID:   u,
 		Target: filepath.Join(ctx.mountsPath(), u, "rootfs"),
 		Upper:  filepath.Join(ctx.mountsPath(), u, "upper"),

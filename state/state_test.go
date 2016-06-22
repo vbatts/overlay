@@ -29,7 +29,7 @@ func TestContext(t *testing.T) {
 		t.Errorf("this should never be nil")
 	}
 
-	m := ctx.NewMount()
+	m := ctx.NewMountPoint()
 
 	if err := ctx.SaveMount(m); err != nil {
 		t.Error(err)

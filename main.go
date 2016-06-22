@@ -3,10 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"syscall"
 
 	"github.com/vbatts/overlay/mount"
 	"github.com/vbatts/overlay/state"
@@ -26,7 +24,7 @@ func main() {
 
 	if *flUnmount {
 		for _, arg := range flag.Args() {
-			if err := mount.Unmount(arg); err != nil {
+			if err := mount.UnmountPath(arg); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: unmounting %q: %s\n", arg, err)
 				os.Exit(1)
 			}
@@ -44,11 +42,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if *flSrc == "" {
-		fmt.Fprintln(os.Stderr, "ERROR: no source directory provided")
-		os.Exit(1)
-	}
-
 	if *flListMounts {
 		mounts, err := ctx.Mounts()
 		if err != nil {
@@ -62,9 +55,14 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *flSrc == "" {
+		fmt.Fprintln(os.Stderr, "ERROR: no source directory provided")
+		os.Exit(1)
+	}
+
 	// TODO check for supported underlying filesystems (ext4, xfs)
 
-	m := ctx.NewMount()
+	m := ctx.NewMountPoint()
 	m.Source, err = filepath.Abs(*flSrc)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
@@ -81,50 +79,19 @@ func main() {
 
 	// TODO check for targetDir directory already mounted
 
-	if _, err := os.Stat(m.Target); os.IsNotExist(err) {
-		if err := os.Mkdir(m.Target, 0755); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: making %q: %s\n", m.Target, err)
-			os.Exit(1)
-		}
-
-		// when the binary is setuid, the effective uid is 0, so reset these new directories to the user
-		if err := os.Chown(m.Target, os.Getuid(), os.Getgid()); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: owning %q: %s\n", m.Target, err)
-			os.Exit(1)
-		}
+	if err := m.Mkdir(0755); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+		os.Exit(1)
 	}
 	fmt.Println(m.Target)
 
 	// TODO record this state of tmp directories somewhere, to show the user previous iterations or garbage collection
-	tmpDir, err := ioutil.TempDir(filepath.Dir(m.Target), filepath.Base(m.Source))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
-		os.Exit(1)
-	}
-	// when the binary is setuid, the effective uid is 0, so reset these new directories to the user
-	if err := os.Chown(tmpDir, os.Getuid(), os.Getgid()); err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: owning %q: %s\n", tmpDir, err)
-		os.Exit(1)
-	}
 
-	for _, name := range []string{"upper", "work", "merged"} {
-		if err := os.Mkdir(filepath.Join(tmpDir, name), 0755); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: making %q: %s\n", name, err)
-			os.Exit(1)
-		}
-		// when the binary is setuid, the effective uid is 0, so reset these new directories to the user
-		if err := os.Chown(filepath.Join(tmpDir, name), os.Getuid(), os.Getgid()); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: owning %q: %s\n", filepath.Join(tmpDir, name), err)
-			os.Exit(1)
-		}
-	}
-
-	optionData := fmt.Sprintf("lowerdir=%s,workdir=%s,upperdir=%s", m.Source, filepath.Join(tmpDir, "work"), filepath.Join(tmpDir, "upper"))
 	if *flDebug {
-		fmt.Println(optionData)
+		fmt.Println(m.Options())
 	}
 
-	if err := syscall.Mount(filepath.Join(tmpDir, "merged"), m.Target, "overlay", 0, optionData); err != nil {
+	if err := mount.Mount(m); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
 	}
