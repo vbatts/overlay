@@ -77,15 +77,25 @@ func main() {
 		}
 	}
 
-	// TODO check for targetDir directory already mounted
+	// check if target directory already mounted
+	infos, err := mount.Infos()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: mountinfo: %s\n", err)
+		os.Exit(1)
+	}
+	for i := range infos {
+		if infos[i].MountPoint == m.Target {
+			fmt.Fprintf(os.Stderr, "ERROR: %q is already mounted\n", m.Target)
+			os.Exit(1)
+		}
+	}
 
+	// TODO add cleanup mechanism if something later fails
 	if err := m.Mkdir(0755); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
 	}
 	fmt.Println(m.Target)
-
-	// TODO record this state of tmp directories somewhere, to show the user previous iterations or garbage collection
 
 	if *flDebug {
 		fmt.Println(m.Options())
