@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 // MountPoint type is used for mounting and storing state
@@ -31,6 +32,12 @@ func (mp MountPoint) Mkdir(perm os.FileMode) error {
 					return fmt.Errorf("owning %q: %s\n", dir, err)
 				}
 			}
+		}
+	}
+	// and chown the parent directory too
+	if os.Getuid() != os.Geteuid() {
+		if err := os.Chown(filepath.Dir(mp.Work), os.Getuid(), os.Getgid()); err != nil {
+			return fmt.Errorf("owning %q: %s\n", mp.Work, err)
 		}
 	}
 	return nil

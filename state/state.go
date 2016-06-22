@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -22,6 +23,16 @@ type Context struct {
 
 // Initialize provides a Context from a state root directory
 func Initialize(root string) (*Context, error) {
+	for _, dir := range []string{root, filepath.Join(root, "mounts")} {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("making %q: %s\n", dir, err)
+		}
+		if os.Getuid() != os.Geteuid() {
+			if err := os.Chown(dir, os.Getuid(), os.Getgid()); err != nil {
+				return nil, fmt.Errorf("owning %q: %s\n", dir, err)
+			}
+		}
+	}
 	return &Context{Root: root}, nil
 }
 
