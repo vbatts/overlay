@@ -31,7 +31,7 @@ func TestContext(t *testing.T) {
 
 	m := ctx.NewMount()
 
-	if err := ctx.PutMount(m); err != nil {
+	if err := ctx.SaveMount(m); err != nil {
 		t.Error(err)
 	}
 	mounts, err := ctx.Mounts()

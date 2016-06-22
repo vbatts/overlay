@@ -128,7 +128,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
 	}
-	if err := ctx.PutMount(m); err != nil {
+	if err := ctx.SaveMount(m); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
 	}

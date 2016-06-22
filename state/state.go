@@ -10,14 +10,22 @@ import (
 	"github.com/vbatts/overlay/types"
 )
 
+// Config contains the metadata for mount information
 type Config struct {
 	Mounts []types.Mount
 }
 
+// Context is used when
 type Context struct {
 	Root string
 }
 
+// Initialize provides a Context from a state root directory
+func Initialize(root string) (*Context, error) {
+	return &Context{Root: root}, nil
+}
+
+// Mounts is the list of all mounts from the Context's Config (all stored mounts)
 func (ctx *Context) Mounts() ([]types.Mount, error) {
 	c, err := ctx.config()
 	if err != nil {
@@ -26,7 +34,8 @@ func (ctx *Context) Mounts() ([]types.Mount, error) {
 	return c.Mounts, nil
 }
 
-func (ctx *Context) PutMount(m types.Mount) error {
+// SaveMount stores a Mount to the Context's Config
+func (ctx *Context) SaveMount(m types.Mount) error {
 	c, err := ctx.config()
 	if err != nil {
 		return err
@@ -35,10 +44,15 @@ func (ctx *Context) PutMount(m types.Mount) error {
 	return ctx.putConfig(c)
 }
 
+// NewUUID provides a UUID based on RFC 4122 and DCE 1.1
+func NewUUID() string {
+	return uuid.New()
+}
+
 // NewMount prepares a Mount context with a new UUID.
-// Once the Mount is populated, it must be saved with PutMount
+// Once the Mount is populated, it must be saved with SaveMount
 func (ctx *Context) NewMount() types.Mount {
-	u := uuid.New()
+	u := NewUUID()
 	return types.Mount{
 		UUID:   u,
 		Target: filepath.Join(ctx.mountsPath(), u, "rootfs"),
@@ -81,8 +95,4 @@ func (ctx *Context) configPath() string {
 
 func (ctx *Context) mountsPath() string {
 	return filepath.Join(ctx.Root, "mounts")
-}
-
-func Initialize(root string) (*Context, error) {
-	return &Context{Root: root}, nil
 }
