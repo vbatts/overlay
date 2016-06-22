@@ -21,27 +21,34 @@ Here is making a directory, mounting it in an overlay, and showing the differenc
 All as a limited user.
 
 ```bash
-vbatts@bananaboat ~ $ mkdir x
-vbatts@bananaboat ~ $ touch x/file
-vbatts@bananaboat ~ $ overlay -src ./x
-/home/vbatts/x.overlay
-vbatts@bananaboat ~ $ cd ./x.overlay
-vbatts@bananaboat ~/x.overlay $ ls
+$ mkdir x
+$ touch x/file
+$ overlay -src ./x
+/home/vbatts/.local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6/rootfs
+$ cd /home/vbatts/.local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6/rootfs
+$ ls
 file
-vbatts@bananaboat ~/x.overlay $ touch file2
-vbatts@bananaboat ~/x.overlay $ rm file
-vbatts@bananaboat ~/x.overlay $ ls
+$ touch file2
+$ rm file
+$ ls
 file2
-vbatts@bananaboat ~/x.overlay $ ls ../x
+$ cd -
+/home/vbatts
+$ ls ./x
 file
 ```
 
 Here is unmounting the overlay as a limited user.
 
 ```bash
-vbatts@bananaboat ~ (master *) $ findmnt | grep -w x
-x mq/home/vbatts/x.overlay      /home/vbatts/x796818151/merged overlay         rw,relatime,lowerdir=/home/vbatts/x,upperdir=/home/vbatts/x796818151/upper,workdir=/home/vbatts/x796818151/work
-vbatts@bananaboat ~ $ overlay -unmount ./x.overlay 
-vbatts@bananaboat ~ $ echo $?
+$ findmnt | grep -w overlay
+│ └─/home/vbatts/.local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6/rootfs /home/vbatts/.local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6/merge overlay  rw,relatime,lowerdir=/home/vbatts/x,upperdir=/home/vbatts/.local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6/upper,workdir=/home/vbatts/.local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6/work
+$ overlay -unmount /home/vbatts/.local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6/rootfs
+$ echo $?
 0
+$ overlay -list
+TARGET          SOURCE          UUID
+/home/vbatts/.local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6/rootfs            /home/vbatts/x          43b2d008-706e-4378-ae18-b86066ecd0d6
+$ rm -rf .local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6
+$ overlay -list
 ```
