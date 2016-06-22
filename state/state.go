@@ -13,7 +13,7 @@ import (
 
 // Config contains the metadata for mount information
 type Config struct {
-	Mounts []types.MountPoint
+	Mounts map[string]types.MountPoint // map[UUID]MountPoint
 }
 
 // Context is used when
@@ -37,24 +37,40 @@ func Initialize(root string) (*Context, error) {
 }
 
 // Mounts is the list of all mounts from the Context's Config (all stored mounts)
-func (ctx *Context) Mounts() ([]types.MountPoint, error) {
+func (ctx *Context) Mounts() (map[string]types.MountPoint, error) {
 	// FIXME this will get out of sync if there are failures to Mount.
 	// Better to just glob this directory for the listing.
 	// Also, if the Target director is not in the mounts/$uuid/ directory, make a symlink from 'rootfs' to the target directory
+
 	c, err := ctx.config()
 	if err != nil {
 		return nil, err
 	}
+
+	// any mount in the config that do not exist on disk, need to be pruned
+	for mUUID := range c.Mounts {
+		if _, err := os.Stat(filepath.Join(ctx.mountsPath(), mUUID)); os.IsNotExist(err) {
+			delete(c.Mounts, mUUID)
+		}
+	}
+
+	if err := ctx.putConfig(c); err != nil {
+		return nil, err
+	}
+
 	return c.Mounts, nil
 }
 
 // SaveMount stores a MountPoint to the Context's Config
 func (ctx *Context) SaveMount(m types.MountPoint) error {
+	if m.UUID == "" {
+		return fmt.Errorf("MountPoint.UUID must be set")
+	}
 	c, err := ctx.config()
 	if err != nil {
 		return err
 	}
-	c.Mounts = append(c.Mounts, m)
+	c.Mounts[m.UUID] = m
 	return ctx.putConfig(c)
 }
 
@@ -85,7 +101,7 @@ func (ctx *Context) putConfig(c *Config) error {
 }
 
 func (ctx *Context) config() (*Config, error) {
-	var c Config
+	c := Config{Mounts: map[string]types.MountPoint{}}
 	data, err := ioutil.ReadFile(ctx.configPath())
 	if err != nil {
 		if os.IsNotExist(err) {
