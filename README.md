@@ -49,6 +49,6 @@ $ echo $?
 $ overlay -list
 TARGET          SOURCE          UUID
 /home/vbatts/.local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6/rootfs            /home/vbatts/x          43b2d008-706e-4378-ae18-b86066ecd0d6
-$ rm -rf .local/share/overlay/mounts/43b2d008-706e-4378-ae18-b86066ecd0d6
+$ overlay -remove 43b2d008-706e-4378-ae18-b86066ecd0d6
 $ overlay -list
 ```

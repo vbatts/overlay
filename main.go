@@ -14,6 +14,7 @@ var (
 	flSrc        = flag.String("src", "", "source directory to overlay")
 	flTarget     = flag.String("target", "", "destination to overlay to (default is ${src}.overlay)")
 	flUnmount    = flag.Bool("unmount", false, "unmount directory all provided args")
+	flRemove     = flag.String("remove", "", "remove the provided UUID")
 	flRoot       = flag.String("root", filepath.Join(os.Getenv("HOME"), ".local/share/overlay/"), "Directory to story state of previous overlay mounts")
 	flListMounts = flag.Bool("list", false, "list previously recorded mounts")
 	flDebug      = flag.Bool("debug", false, "enable debug output")
@@ -21,6 +22,9 @@ var (
 
 func main() {
 	flag.Parse()
+	if *flDebug {
+		os.Setenv("DEBUG", "1")
+	}
 
 	if *flUnmount {
 		for _, arg := range flag.Args() {
@@ -29,17 +33,32 @@ func main() {
 				os.Exit(1)
 			}
 		}
-		os.Exit(0)
-	}
-
-	if *flDebug {
-		os.Setenv("DEBUG", "1")
+		if *flRemove == "" {
+			os.Exit(0)
+		}
 	}
 
 	ctx, err := state.Initialize(*flRoot)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
+	}
+
+	if *flRemove != "" {
+		mounts, err := ctx.Mounts()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+			os.Exit(1)
+		}
+		for _, m := range mounts {
+			if m.UUID == *flRemove {
+				if err := os.RemoveAll(m.Root()); err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+					os.Exit(1)
+				}
+			}
+		}
+		os.Exit(0)
 	}
 
 	if *flListMounts {

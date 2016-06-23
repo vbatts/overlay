@@ -36,9 +36,14 @@ func (mp MountPoint) Mkdir(perm os.FileMode) error {
 	}
 	// and chown the parent directory too
 	if os.Getuid() != os.Geteuid() {
-		if err := os.Chown(filepath.Dir(mp.Work), os.Getuid(), os.Getgid()); err != nil {
+		if err := os.Chown(mp.Root(), os.Getuid(), os.Getgid()); err != nil {
 			return fmt.Errorf("owning %q: %s\n", mp.Work, err)
 		}
 	}
 	return nil
+}
+
+// Root provides the base path of the working directories
+func (mp MountPoint) Root() string {
+	return filepath.Dir(mp.Work)
 }
