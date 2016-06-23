@@ -67,8 +67,8 @@ func main() {
 			fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 			os.Exit(1)
 		}
+		fmt.Printf("TARGET\t\tSOURCE\t\tUUID\n")
 		for _, m := range mounts {
-			fmt.Printf("TARGET\t\tSOURCE\t\tUUID\n")
 			fmt.Printf("%s\t\t%s\t\t%s\n", m.Target, m.Source, m.UUID)
 		}
 		os.Exit(0)
