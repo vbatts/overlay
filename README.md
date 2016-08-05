@@ -7,18 +7,31 @@ This helper is aimed at being usable by limited users.
 
 ## Installing
 
-While this application is `go get`'able, for the `mount()` command, the binary needs to be owned by root and setuid.
+While this application is `go get`'able, for the `mount()` command, the binary
+needs to be owned by root and setuid.
 
 ```bash
 $ go get github.com/vbatts/overlay
 $ sudo dd if=$GOPATH/bin/overlay of=/usr/local/bin/overlay
-$ sudo chmod 4755 /usr/local/bin/overlay
+$ sudo chmod +x /usr/local/bin/overlay
+```
+
+Since this binary is doing mount() and umount(), it needs privileges
+(unfortunately those privileges are within CAP_SYS_ADMIN).
+
+So either run:
+```bash
+sudo setcap cap_sys_admin+ep /usr/local/bin/overlay
+```
+or setuid of:
+```bash
+sudo chmod s+u /usr/local/bin/overlay
 ```
 
 ## Usage
 
-Here is making a directory, mounting it in an overlay, and showing the differences after modifications.
-All as a limited user.
+Here is making a directory, mounting it in an overlay, and showing the
+differences after modifications.  All as a limited user.
 
 ```bash
 $ mkdir x
