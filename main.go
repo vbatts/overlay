@@ -12,6 +12,8 @@ import (
 	"github.com/vbatts/overlay/state"
 )
 
+var ctx *cli.Context
+
 var (
 	flSrc        = flag.String("src", "", "source directory to overlay")
 	flTarget     = flag.String("target", "", "destination to overlay to (default is ${src}.overlay)")
@@ -246,11 +248,12 @@ func main() {
 }
 
 // do this before any subcommands
-func preload(context *cli.Context) error {
+func preload(context *cli.Context) (err error) {
 	log.SetOutput(os.Stderr)
 	if context.GlobalBool("debug") {
 		os.Setenv("DEBUG", "1")
 		log.SetLevel(log.DebugLevel)
 	}
-	return nil
+	ctx, err = state.Initialize(context.GlobalString("root"))
+	return err
 }
